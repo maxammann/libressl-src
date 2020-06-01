@@ -1,23 +1,17 @@
 [package]
-name = "openssl-src"
-version = "111.9.0+1.1.1g"
-authors = ["Alex Crichton <alex@alexcrichton.com>"]
+name = "libressl-src"
+version = "111.10.0+3.1.2"
+authors = ["Dubiousjim <dubiousjim@gmail.com>"]
 license = "MIT/Apache-2.0"
+description = "Source of LibreSSL and logic to build it."
+repository = "https://github.com/dubiousjim/libressl-src"
 readme = "README.md"
-repository = "https://github.com/alexcrichton/openssl-src-rs"
-description = """
-Source of OpenSSL and logic to build it.
-"""
-exclude = [
-  'openssl/boringssl/*',
-  'openssl/fuzz/*',
-  'openssl/krb5/*',
-  'openssl/pyca-cryptography/*',
-  'openssl/test/*',
-]
+exclude = ['libressl/*']
 
 [workspace]
 members = ['testcrate']
 
 [dependencies]
-cc = "1.0"
+# autotools = "0.2.1"
+# autotools = { git = "https://github.com/lu-zero/autotools-rs" }
+autotools = { git = "https://github.com/dubiousjim/autotools-rs" }
