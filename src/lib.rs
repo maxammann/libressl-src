@@ -1,13 +1,15 @@
-extern crate cc;
+extern crate autotools;
 
 use std::env;
-use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::fs;
+// use std::io::Write;
+// use std::fs::File;
+// use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub fn source_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("openssl")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("libressl")
 }
 
 pub fn version() -> &'static str {
@@ -29,7 +31,7 @@ pub struct Artifacts {
 impl Build {
     pub fn new() -> Build {
         Build {
-            out_dir: env::var_os("OUT_DIR").map(|s| PathBuf::from(s).join("openssl-build")),
+            out_dir: env::var_os("OUT_DIR").map(|s| PathBuf::from(s).join("libressl-build")),
             target: env::var("TARGET").ok(),
             host: env::var("HOST").ok(),
         }
@@ -50,6 +52,7 @@ impl Build {
         self
     }
 
+    /*
     fn cmd_make(&self) -> Command {
         let host = &self.host.as_ref().expect("HOST dir not set")[..];
         if host.contains("dragonfly")
@@ -62,13 +65,14 @@ impl Build {
             Command::new("make")
         }
     }
+    */
 
     pub fn build(&mut self) -> Artifacts {
         let target = &self.target.as_ref().expect("TARGET dir not set")[..];
         let host = &self.host.as_ref().expect("HOST dir not set")[..];
         let out_dir = self.out_dir.as_ref().expect("OUT_DIR not set");
         let build_dir = out_dir.join("build");
-        let install_dir = out_dir.join("install");
+        let install_dir = out_dir.clone(); // out_dir.join("install");
 
         if build_dir.exists() {
             fs::remove_dir_all(&build_dir).unwrap();
@@ -80,294 +84,47 @@ impl Build {
         let inner_dir = build_dir.join("src");
         fs::create_dir_all(&inner_dir).unwrap();
         cp_r(&source_dir(), &inner_dir);
-        apply_patches(target, &inner_dir);
+        let _ = host;
 
-        let perl_program =
-            env::var("OPENSSL_SRC_PERL").unwrap_or(env::var("PERL").unwrap_or("perl".to_string()));
-        let mut configure = Command::new(perl_program);
-        configure.arg("./Configure");
-        if host.contains("pc-windows-gnu") {
-            configure.arg(&format!("--prefix={}", sanitize_sh(&install_dir)));
-        } else {
-            configure.arg(&format!("--prefix={}", install_dir.display()));
+        // out_dir defaults to $OUT_DIR/libressl-build
+        // install_dir = out_dir
+        // build_dir = out_dir/build
+        // inner_dir = build_dir/src
+        // On Linux, source_dir() == "/usr/locde/libressl"
+
+        // see https://stackoverflow.com/a/33279062/272427
+        let mut touch = Command::new("touch");
+        touch.current_dir(&inner_dir);
+        touch.args(vec![
+            "aclocal.m4",
+            "configure",
+            "Makefile.am",
+            "Makefile.in",
+        ]);
+        self.run_command(touch, "touching ./configure etc for LibreSSL");
+
+        use autotools::Config;
+        let mut cfg = Config::new(&inner_dir);
+        cfg.disable_shared();
+        cfg.out_dir(&install_dir);
+        if target.starts_with("i686-unknown-linux") {
+            cfg.config_option("host", Some(target));
         }
-
-        configure
-            // No shared objects, we just want static libraries
-            .arg("no-dso")
-            // Should be off by default on OpenSSL 1.1.0, but let's be extra sure
-            .arg("no-ssl3")
-            // No need to build tests, we won't run them anyway
-            .arg("no-unit-test")
-            // Nothing related to zlib please
-            .arg("no-comp")
-            .arg("no-zlib")
-            .arg("no-zlib-dynamic")
-            // This actually fails to compile on musl (it needs linux/version.h
-            // right now) but we don't actually need this most of the time. This
-            // is intended for super-configurable backends and whatnot
-            // apparently but the whole point of this script is to produce a
-            // "portable" implementation of OpenSSL, so shouldn't be any harm in
-            // turning this off.
-            .arg("no-engine")
-            // MUSL doesn't implement some of the libc functions that the async
-            // stuff depends on, and we don't bind to any of that in any case.
-            .arg("no-async");
-
-        // On Android it looks like not passing no-stdio may cause a build
-        // failure (#13), but most other platforms need it for things like
-        // loading system certificates so only disable it on Android.
-        if target.contains("android") {
-            configure.arg("no-stdio");
-        }
-
-        if target.contains("msvc") {
-            // On MSVC we need nasm.exe to compile the assembly files, but let's
-            // just pessimistically assume for now that's not available.
-            configure.arg("no-asm");
-
-            let features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or(String::new());
-            if features.contains("crt-static") {
-                configure.arg("no-shared");
-            }
-        } else {
-            // Never shared on non-MSVC
-            configure.arg("no-shared");
-        }
-
-        let os = match target {
-            // Note that this, and all other android targets, aren't using the
-            // `android64-aarch64` (or equivalent) builtin target. That
-            // apparently has a crazy amount of build logic in OpenSSL 1.1.1
-            // that bypasses basically everything `cc` does, so let's just cop
-            // out and say it's linux and hope it works.
-            "aarch64-linux-android" => "linux-aarch64",
-            "aarch64-unknown-freebsd" => "BSD-generic64",
-            "aarch64-unknown-linux-gnu" => "linux-aarch64",
-            "aarch64-unknown-linux-musl" => "linux-aarch64",
-            "aarch64-pc-windows-msvc" => "VC-WIN64-ARM",
-            "arm-linux-androideabi" => "linux-armv4",
-            "armv7-linux-androideabi" => "linux-armv4",
-            "arm-unknown-linux-gnueabi" => "linux-armv4",
-            "arm-unknown-linux-gnueabihf" => "linux-armv4",
-            "arm-unknown-linux-musleabi" => "linux-armv4",
-            "arm-unknown-linux-musleabihf" => "linux-armv4",
-            "armv6-unknown-freebsd" => "BSD-generic32",
-            "armv7-unknown-freebsd" => "BSD-generic32",
-            "armv7-unknown-linux-gnueabihf" => "linux-armv4",
-            "armv7-unknown-linux-musleabihf" => "linux-armv4",
-            "asmjs-unknown-emscripten" => "gcc",
-            "i686-apple-darwin" => "darwin-i386-cc",
-            "i686-linux-android" => "linux-elf",
-            "i686-pc-windows-gnu" => "mingw",
-            "i686-pc-windows-msvc" => "VC-WIN32",
-            "i686-unknown-freebsd" => "BSD-x86-elf",
-            "i686-unknown-linux-gnu" => "linux-elf",
-            "i686-unknown-linux-musl" => "linux-elf",
-            "mips-unknown-linux-gnu" => "linux-mips32",
-            "mips-unknown-linux-musl" => "linux-mips32",
-            "mips64-unknown-linux-gnuabi64" => "linux64-mips64",
-            "mips64el-unknown-linux-gnuabi64" => "linux64-mips64",
-            "mipsel-unknown-linux-gnu" => "linux-mips32",
-            "mipsel-unknown-linux-musl" => "linux-mips32",
-            "powerpc-unknown-linux-gnu" => "linux-ppc",
-            "powerpc64-unknown-freebsd" => "BSD-generic64",
-            "powerpc64-unknown-linux-gnu" => "linux-ppc64",
-            "powerpc64le-unknown-linux-gnu" => "linux-ppc64le",
-            "riscv64gc-unknown-linux-gnu" => "linux-generic64",
-            "s390x-unknown-linux-gnu" => "linux64-s390x",
-            "x86_64-apple-darwin" => "darwin64-x86_64-cc",
-            "x86_64-linux-android" => "linux-x86_64",
-            "x86_64-pc-windows-gnu" => "mingw64",
-            "x86_64-pc-windows-msvc" => "VC-WIN64A",
-            "x86_64-unknown-freebsd" => "BSD-x86_64",
-            "x86_64-unknown-dragonfly" => "BSD-x86_64",
-            "x86_64-unknown-illumos" => "solaris64-x86_64-gcc",
-            "x86_64-unknown-linux-gnu" => "linux-x86_64",
-            "x86_64-unknown-linux-musl" => "linux-x86_64",
-            "x86_64-unknown-netbsd" => "BSD-x86_64",
-            "x86_64-sun-solaris" => "solaris64-x86_64-gcc",
-            "wasm32-unknown-emscripten" => "gcc",
-            "wasm32-unknown-unknown" => "gcc",
-            "aarch64-apple-ios" => "ios64-cross",
-            "x86_64-apple-ios" => "iossimulator-xcrun",
-            _ => panic!("don't know how to configure OpenSSL for {}", target),
-        };
-
-        let mut ios_isysroot: std::option::Option<String> = None;
-
-        configure.arg(os);
-
-        // If we're not on MSVC we configure cross compilers and cross tools and
-        // whatnot. Note that this doesn't happen on MSVC b/c things are pretty
-        // different there and this isn't needed most of the time anyway.
-        if !target.contains("msvc") {
-            let mut cc = cc::Build::new();
-            cc.target(target).host(host).warnings(false).opt_level(2);
-            let compiler = cc.get_compiler();
-            configure.env("CC", compiler.path());
-            let path = compiler.path().to_str().unwrap();
-
-            // Both `cc::Build` and `./Configure` take into account
-            // `CROSS_COMPILE` environment variable. So to avoid double
-            // prefix, we unset `CROSS_COMPILE` for `./Configure`.
-            configure.env_remove("CROSS_COMPILE");
-
-            // Infer ar/ranlib tools from cross compilers if the it looks like
-            // we're doing something like `foo-gcc` route that to `foo-ranlib`
-            // as well.
-            if path.ends_with("-gcc") && !target.contains("unknown-linux-musl") {
-                let path = &path[..path.len() - 4];
-                if env::var_os("RANLIB").is_none() {
-                    configure.env("RANLIB", format!("{}-ranlib", path));
-                }
-                if env::var_os("AR").is_none() {
-                    configure.env("AR", format!("{}-ar", path));
-                }
-            }
-
-            // Make sure we pass extra flags like `-ffunction-sections` and
-            // other things like ARM codegen flags.
-            let mut skip_next = false;
-            let mut is_isysroot = false;
-            for arg in compiler.args() {
-                // For whatever reason `-static` on MUSL seems to cause
-                // issues...
-                if target.contains("musl") && arg == "-static" {
-                    continue;
-                }
-
-                // cargo-lipo specifies this but OpenSSL complains
-                if target.contains("apple-ios") {
-                    if arg == "-arch" {
-                        skip_next = true;
-                        continue;
-                    }
-
-                    if arg == "-isysroot" {
-                        is_isysroot = true;
-                        continue;
-                    }
-
-                    if is_isysroot {
-                        is_isysroot = false;
-                        ios_isysroot = Some(arg.to_str().unwrap().to_string());
-                        continue;
-                    }
-                }
-
-                if skip_next {
-                    skip_next = false;
-                    continue;
-                }
-
-                configure.arg(arg);
-            }
-
-            if os.contains("iossimulator") {
-                if let Some(ref isysr) = ios_isysroot {
-                    configure.env(
-                        "CC",
-                        &format!(
-                            "xcrun -sdk iphonesimulator cc -isysroot {}",
-                            sanitize_sh(&Path::new(isysr))
-                        ),
-                    );
-                }
-            }
-
-            if target == "x86_64-pc-windows-gnu" {
-                // For whatever reason OpenSSL 1.1.1 fails to build on
-                // `x86_64-pc-windows-gnu` in our docker container due to an
-                // error about "too many sections". Having no idea what this
-                // error is about some quick googling yields
-                // https://github.com/cginternals/glbinding/issues/135 which
-                // mysteriously mentions `-Wa,-mbig-obj`, passing a new argument
-                // to the assembler. Now I have no idea what `-mbig-obj` does
-                // for Windows nor why it would matter, but it does seem to fix
-                // compilation issues.
-                //
-                // Note that another entirely unrelated issue -
-                // https://github.com/assimp/assimp/issues/177 - was fixed by
-                // splitting a large file, so presumably OpenSSL has a large
-                // file soemwhere in it? Who knows!
-                configure.arg("-Wa,-mbig-obj");
-            }
-
-            if target.contains("pc-windows-gnu") && path.ends_with("-gcc") {
-                // As of OpenSSL 1.1.1 the build system is now trying to execute
-                // `windres` which doesn't exist when we're cross compiling from
-                // Linux, so we may need to instruct it manually to know what
-                // executable to run.
-                let windres = format!("{}-windres", &path[..path.len() - 4]);
-                configure.env("WINDRES", &windres);
-            }
-
-            if target.contains("emscripten") {
-                // As of OpenSSL 1.1.1 the source apparently wants to include
-                // `stdatomic.h`, but this doesn't exist on Emscripten. After
-                // reading OpenSSL's source where the error is, we define this
-                // magical (and probably
-                // compiler-internal-should-not-be-user-defined) macro to say
-                // "no atomics are available" and avoid including such a header.
-                configure.arg("-D__STDC_NO_ATOMICS__");
-            }
-
-            if target.contains("musl") {
-                // Hack around openssl/openssl#7207 for now
-                configure.arg("-DOPENSSL_NO_SECURE_MEMORY");
-            }
-        }
-
-        // And finally, run the perl configure script!
-        configure.current_dir(&inner_dir);
-        self.run_command(configure, "configuring OpenSSL build");
-
-        // On MSVC we use `nmake.exe` with a slightly different invocation, so
-        // have that take a different path than the standard `make` below.
-        if target.contains("msvc") {
-            let mut build =
-                cc::windows_registry::find(target, "nmake.exe").expect("failed to find nmake");
-            build.arg("build_libs").current_dir(&inner_dir);
-            self.run_command(build, "building OpenSSL");
-
-            let mut install =
-                cc::windows_registry::find(target, "nmake.exe").expect("failed to find nmake");
-            install.arg("install_dev").current_dir(&inner_dir);
-            self.run_command(install, "installing OpenSSL");
-        } else {
-            let mut depend = self.cmd_make();
-            depend.arg("depend").current_dir(&inner_dir);
-            self.run_command(depend, "building OpenSSL dependencies");
-
-            let mut build = self.cmd_make();
-            build.arg("build_libs").current_dir(&inner_dir);
-            if !cfg!(windows) {
-                if let Some(s) = env::var_os("CARGO_MAKEFLAGS") {
-                    build.env("MAKEFLAGS", s);
-                }
-            }
-
-            if let Some(ref isysr) = ios_isysroot {
-                let components: Vec<&str> = isysr.split("/SDKs/").collect();
-                build.env("CROSS_TOP", components[0]);
-                build.env("CROSS_SDK", components[1]);
-            }
-
-            self.run_command(build, "building OpenSSL");
-
-            let mut install = self.cmd_make();
-            install.arg("install_dev").current_dir(&inner_dir);
-            self.run_command(install, "installing OpenSSL");
-        }
-
-        let libs = if target.contains("msvc") {
-            vec!["libssl".to_string(), "libcrypto".to_string()]
-        } else {
-            vec!["ssl".to_string(), "crypto".to_string()]
-        };
+        cfg.cflag("-v"); // JIMP
+        let dst = cfg.build();
+        assert_eq!(dst, install_dir);
 
         fs::remove_dir_all(&inner_dir).unwrap();
+
+        let libs = if target.contains("msvc") {
+            vec![
+                "libtls".to_string(),
+                "libssl".to_string(),
+                "libcrypto".to_string(),
+            ]
+        } else {
+            vec!["tls".to_string(), "ssl".to_string(), "crypto".to_string()]
+        };
 
         Artifacts {
             lib_dir: install_dir.join("lib"),
@@ -376,6 +133,7 @@ impl Build {
         }
     }
 
+    #[allow(dead_code)]
     fn run_command(&self, mut command: Command, desc: &str) {
         println!("running {:?}", command);
         let status = command.status().unwrap();
@@ -402,8 +160,7 @@ fn cp_r(src: &Path, dst: &Path) {
         let path = f.path();
         let name = path.file_name().unwrap();
 
-        // Skip git metadata as it's been known to cause issues (#26) and
-        // otherwise shouldn't be required
+        // Skip git metadata as it's been known to cause issues and shouldn't be required
         if name.to_str() == Some(".git") {
             continue;
         }
@@ -419,6 +176,7 @@ fn cp_r(src: &Path, dst: &Path) {
     }
 }
 
+/*
 fn apply_patches(target: &str, inner: &Path) {
     if !target.contains("musl") {
         return;
@@ -439,7 +197,9 @@ fn apply_patches(target: &str, inner: &Path) {
         .write_all(buf.as_bytes())
         .unwrap();
 }
+*/
 
+/*
 fn sanitize_sh(path: &Path) -> String {
     if !cfg!(windows) {
         return path.to_str().unwrap().to_string();
@@ -459,6 +219,7 @@ fn sanitize_sh(path: &Path) -> String {
         Some(format!("/{}/{}", drive, &s[drive.len_utf8() + 2..]))
     }
 }
+*/
 
 impl Artifacts {
     pub fn include_dir(&self) -> &Path {
