@@ -1,5 +1,5 @@
 [package]
-name = "libressl-src"
+name = "openssl-src" # "libressl-src"
 version = "111.10.0+3.1.2"
 authors = ["Dubiousjim <dubiousjim@gmail.com>"]
 license = "MIT/Apache-2.0"

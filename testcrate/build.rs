@@ -1,4 +1,4 @@
-extern crate libressl_src as src;
+extern crate openssl_src as src;
 
 use std::env;
 use std::fs::File;
