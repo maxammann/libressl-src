@@ -12,6 +12,11 @@ exclude = ['libressl/*']
 members = ['testcrate']
 
 [dependencies]
-# autotools = "0.2.1"
+autotools = "0.3"
+
+[patch.crates-io]
+# Any clients need this patch until autotools > 0.2.1 is published
 # autotools = { git = "https://github.com/lu-zero/autotools-rs" }
-autotools = { git = "https://github.com/dubiousjim/autotools-rs" }
+autotools = { git = "https://github.com/dubiousjim/autotools-rs", branch = "master" }
+# Our ci tests need cc > 1.0.54 for target=armv7-unknown-linux-gnueabi
+cc = { git = "https://github.com/alexcrichton/cc-rs", rev = "77c94412c68bddd29d3ea86aa00c0aaecaaa4904" }
