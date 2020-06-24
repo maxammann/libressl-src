@@ -194,3 +194,27 @@ jobs:
     - name: Install Rust
       run: rustup update stable && rustup default stable && rustup component add rustfmt
     - run: cargo fmt -- --check
+
+## MORE TARGETS
+## i686-pc-windows-gnu
+## i686-unknown-linux-musl
+#
+## asmjs-unknown-emscripten
+# wasm32-unknown-emscripten
+# wasm32-unknown-unknown
+# wasm32-wasi
+#
+## x86_64-pc-windows-msvc
+## i686-pc-windows-msvc
+# aarch64-pc-windows-msvc
+#
+# aarch64-unknown-linux-musl
+# arm-unknown-linux-musleabi
+# arm-unknown-linux-musleabihf
+# armv7-unknown-linux-musleabi
+# armv7-unknown-linux-musleabihf
+#
+# mips-unknown-linux-musl
+# mipsel-unknown-linux-musl
+# mips64-unknown-linux-muslabi64
+# mips64el-unknown-linux-muslabi64
