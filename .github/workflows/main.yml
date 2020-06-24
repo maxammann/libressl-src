@@ -15,12 +15,16 @@ jobs:
         - macos-x86_64
         - arm64-linux
         - arm-linux
+        - arm-hf-linux
+        - armv7-linux
+        - armv7-hf-linux
         - i686-linux
         - x86_64-musl
         #- asmjs
         - x86_64-android
         - arm64-android
         - arm-android
+        - armv7-android
         - i686-android
 
         #- x86_64-msvc
@@ -59,6 +63,18 @@ jobs:
           target: arm-unknown-linux-gnueabi
           rust: stable
           os: ubuntu-18.04
+        - thing: arm-hf-linux
+          target: arm-unknown-linux-gnueabihf
+          rust: stable
+          os: ubuntu-18.04
+        - thing: armv7-linux
+          target: armv7-unknown-linux-gnueabi
+          rust: stable
+          os: ubuntu-18.04
+        - thing: armv7-hf-linux
+          target: armv7-unknown-linux-gnueabihf
+          rust: stable
+          os: ubuntu-18.04
 
         - thing: i686-linux
           target: i686-unknown-linux-gnu
@@ -83,6 +99,10 @@ jobs:
           os: ubuntu-18.04
         - thing: arm-android
           target: arm-linux-androideabi
+          rust: stable
+          os: ubuntu-18.04
+        - thing: armv7-android
+          target: armv7-linux-androideabi
           rust: stable
           os: ubuntu-18.04
         - thing: i686-android
