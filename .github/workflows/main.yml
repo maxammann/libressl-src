@@ -18,6 +18,10 @@ jobs:
         - arm-hf-linux
         - armv7-linux
         - armv7-hf-linux
+        - mips
+        - mipsel
+        - mips64
+        - mips64el
         - i686-linux
         - x86_64-musl
         #- asmjs
@@ -73,6 +77,23 @@ jobs:
           os: ubuntu-18.04
         - thing: armv7-hf-linux
           target: armv7-unknown-linux-gnueabihf
+          rust: stable
+          os: ubuntu-18.04
+
+        - thing: mips
+          target: mips-unknown-linux-gnu
+          rust: stable
+          os: ubuntu-18.04
+        - thing: mipsel
+          target: mipsel-unknown-linux-gnu
+          rust: stable
+          os: ubuntu-18.04
+        - thing: mips64
+          target: mips64-unknown-linux-gnuabi64
+          rust: stable
+          os: ubuntu-18.04
+        - thing: mips64el
+          target: mips64el-unknown-linux-gnuabi64
           rust: stable
           os: ubuntu-18.04
 
