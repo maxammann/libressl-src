@@ -32,63 +32,63 @@ jobs:
         - thing: stable
           target: x86_64-unknown-linux-gnu
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: beta
           target: x86_64-unknown-linux-gnu
           rust: beta
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: nightly
           target: x86_64-unknown-linux-gnu
           rust: nightly
-          os: ubuntu-latest
+          os: ubuntu-18.04
 
         - thing: x86_64-mingw
           target: x86_64-pc-windows-gnu
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: macos-x86_64
           target: x86_64-apple-darwin
           rust: stable
-          os: macos-latest
+          os: macos-10.15
 
         - thing: arm64-linux
           target: aarch64-unknown-linux-gnu
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: arm-linux
           target: arm-unknown-linux-gnueabi
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
 
         - thing: i686-linux
           target: i686-unknown-linux-gnu
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: x86_64-musl
           target: x86_64-unknown-linux-musl
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         #- thing: asmjs
         #  target: asmjs-unknown-emscripten
         #  rust: stable
-        #  os: ubuntu-latest
+        #  os: ubuntu-18.04
 
         - thing: x86_64-android
           target: x86_64-linux-android
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: arm64-android
           target: aarch64-linux-android
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: arm-android
           target: arm-linux-androideabi
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
         - thing: i686-android
           target: i686-linux-android
           rust: stable
-          os: ubuntu-latest
+          os: ubuntu-18.04
 
         #- thing: x86_64-msvc
         #  target: x86_64-pc-windows-msvc
@@ -137,7 +137,7 @@ jobs:
 
   rustfmt:
     name: Rustfmt
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
     - name: Install Rust
