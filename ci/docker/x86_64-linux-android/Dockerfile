@@ -10,9 +10,9 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
   gcc \
   libc6-dev
 
-RUN curl -O https://dl.google.com/android/repository/android-ndk-r15b-linux-x86_64.zip
-RUN unzip -q android-ndk-r15b-linux-x86_64.zip
-RUN android-ndk-r15b/build/tools/make_standalone_toolchain.py \
+RUN curl -O https://dl.google.com/android/repository/android-ndk-r15c-linux-x86_64.zip
+RUN unzip -q android-ndk-r15c-linux-x86_64.zip
+RUN android-ndk-r15c/build/tools/make_standalone_toolchain.py \
               --unified-headers \
               --install-dir /android/ndk \
               --arch x86_64 \
