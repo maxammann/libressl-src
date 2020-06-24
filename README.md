@@ -36,14 +36,16 @@ autotools = { git = "https://github.com/dubiousjim/autotools-rs", branch = "mast
 
 But once a newer version of this package (> 0.2.1) is published, this will no longer be necessary.
 
+This package builds and provides linking information for each of LibreSSL's `libtls`, `libssl`, and `libcrypto`. However `openssl-sys` will only include the last two of these. If you want to link against LibreSSL's `libtls`, consider the [libtls](https://lib.rs/crates/libtls) package. (Though this doesn't yet seem to provide a mechanism for using a vendored copy of LibreSSL.)
+
 
 # License
 
 This project is licensed under either of
 
- * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+ * Apache License, Version 2.0, (<!-- [LICENSE-APACHE](LICENSE-APACHE) or -->
    http://www.apache.org/licenses/LICENSE-2.0)
- * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+ * MIT license (<!-- [LICENSE-MIT](LICENSE-MIT) or -->
    http://opensource.org/licenses/MIT)
 
 at your option.
