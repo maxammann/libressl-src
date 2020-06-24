@@ -12,6 +12,7 @@ jobs:
         - beta
         - nightly
         - x86_64-mingw
+        #- i686-mingw
         - macos-x86_64
         - arm64-linux
         - arm-linux
@@ -55,6 +56,10 @@ jobs:
           target: x86_64-pc-windows-gnu
           rust: stable
           os: ubuntu-18.04
+        #- thing: i686-mingw ###
+        #  target: i686-pc-windows-gnu
+        #  rust: stable
+        #  os: ubuntu-18.04
         - thing: macos-x86_64
           target: x86_64-apple-darwin
           rust: stable
