@@ -24,6 +24,7 @@ jobs:
         - mips64el
         - i686-linux
         - x86_64-musl
+        #- i686-musl
         #- asmjs
         - x86_64-android
         - arm64-android
@@ -105,6 +106,10 @@ jobs:
           target: x86_64-unknown-linux-musl
           rust: stable
           os: ubuntu-18.04
+        #- thing: i686-musl
+        #  target: i686-unknown-linux-musl
+        #  rust: stable
+        #  os: ubuntu-18.04
         #- thing: asmjs
         #  target: asmjs-unknown-emscripten
         #  rust: stable
