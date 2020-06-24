@@ -9,8 +9,8 @@ use tar::Builder;
 
 fn main() {
     let name = format!(
-        "openssl-src-bins-{}-{}",
-        read("openssl-src-version"),
+        "libressl-src-bins-{}-{}",
+        read("libressl-src-version"),
         read("target")
     );
     let out = File::create(format!("{}.tar.gz", name)).unwrap();
