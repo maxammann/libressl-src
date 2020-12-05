@@ -4,6 +4,11 @@ This package contains the logic to build [LibreSSL](https://www.libressl.org/)
 and is intended to be consumed by
 the [openssl-sys](https://lib.rs/crates/openssl-sys) package.
 
+Currently it builds LibreSSL 3.1.4, released 17 Aug 2020.
+We're not yet building 3.2.2 (the latest stable release since 18 Oct 2020), because
+[openssl-sys isn't yet supporting it](https://github.com/sfackler/rust-openssl/issues/1309).
+(See discussion on [this PR](https://github.com/sfackler/rust-openssl/pull/1333).)
+
 To use, make sure that `openssl-sys` is built with the `"vendored"` feature
 (the [openssl](https://lib.rs/crates/openssl)
 package also accepts that feature, and passes it on to `openssl-sys`).
