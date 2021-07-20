@@ -12,9 +12,4 @@ exclude = ['libressl/*']
 members = ['testcrate']
 
 [dependencies]
-autotools = "0.3"
-
-[patch.crates-io]
-# Any clients need this patch until autotools > 0.2.1 is published
-# autotools = { git = "https://github.com/lu-zero/autotools-rs" }
-autotools = { git = "https://github.com/dubiousjim/autotools-rs", branch = "master" }
+autotools = "0.2"
