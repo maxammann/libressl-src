@@ -1,7 +1,7 @@
 [package]
-name = "openssl-src" # "libressl-src"
+name = "libressl-src"
 version = "111.13.0+3.1.4"
-authors = ["Dubiousjim <dubiousjim@gmail.com>"]
+authors = ["Dubiousjim <dubiousjim@gmail.com>", "Max Ammann <max@maxammann.org>"]
 license = "MIT/Apache-2.0"
 description = "Source of LibreSSL and logic to build it."
 repository = "https://github.com/dubiousjim/libressl-src"
