@@ -5,11 +5,9 @@ set(
 	bs_cbb.c
 	bs_cbs.c
 	d1_both.c
-	d1_clnt.c
 	d1_lib.c
 	d1_pkt.c
 	d1_srtp.c
-	d1_srvr.c
 	pqueue.c
 	s3_cbc.c
 	s3_lib.c
@@ -38,6 +36,7 @@ set(
 	ssl_versions.c
 	t1_enc.c
 	t1_lib.c
+	tls12_record_layer.c
 	tls13_buffer.c
 	tls13_client.c
 	tls13_error.c
