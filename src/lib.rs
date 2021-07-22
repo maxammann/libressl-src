@@ -106,6 +106,15 @@ impl Build {
         use autotools::Config;
         let mut cfg = Config::new(&inner_dir);
         cfg.disable_shared();
+
+        let mut cc = "clang".to_owned();
+
+        if cfg!(feature = "sancov") {
+            cc.push_str(" -fsanitize-coverage=trace-pc-guard");
+        }
+
+        cfg.env("CC", cc);
+
         cfg.out_dir(&install_dir);
         if target.starts_with("i686-unknown-linux") {
             cfg.config_option("host", Some(target));

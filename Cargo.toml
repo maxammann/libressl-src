@@ -8,6 +8,9 @@ repository = "https://github.com/dubiousjim/libressl-src"
 readme = "README.md"
 exclude = ['libressl/*']
 
+[features]
+sancov = []
+
 [workspace]
 members = ['testcrate']
 
