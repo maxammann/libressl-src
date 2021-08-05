@@ -803,7 +803,12 @@ void SSL_get0_alpn_selected(const SSL *ssl, const unsigned char **data,
 #ifndef OPENSSL_NO_SSL_INTERN
 struct ssl_internal_st;
 
+#include "claim-interface.h"
+
 struct ssl_st {
+    void (* claim)(Claim claim, void* ctx);
+    void* claim_ctx;
+
 	/* protocol version
 	 * (one of SSL2_VERSION, SSL3_VERSION, TLS1_VERSION, DTLS1_VERSION)
 	 */

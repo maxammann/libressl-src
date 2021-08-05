@@ -7,6 +7,8 @@ use std::fs;
 // use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::fs::{File, canonicalize};
+use std::io::Write;
 
 pub fn source_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("libressl")
@@ -67,6 +69,17 @@ impl Build {
     }
     */
 
+    pub fn insert_claim_interface(additional_headers: &PathBuf) -> std::io::Result<()> {
+        let interface = security_claims::CLAIM_INTERFACE_H;
+
+        let path = additional_headers.join("claim-interface.h");
+
+        let mut file = File::create(path)?;
+        file.write_all(interface.as_bytes())?;
+
+        Ok(())
+    }
+
     pub fn build(&mut self) -> Artifacts {
         let target = &self.target.as_ref().expect("TARGET dir not set")[..];
         let host = &self.host.as_ref().expect("HOST dir not set")[..];
@@ -80,6 +93,11 @@ impl Build {
         if install_dir.exists() {
             fs::remove_dir_all(&install_dir).unwrap();
         }
+
+        let additional_headers = out_dir.join("additional_headers");
+
+        fs::create_dir_all(&additional_headers).unwrap();
+        Self::insert_claim_interface(&additional_headers).unwrap();
 
         let inner_dir = build_dir.join("src");
         fs::create_dir_all(&inner_dir).unwrap();
@@ -108,6 +126,9 @@ impl Build {
         cfg.disable_shared();
 
         let mut cc = "clang".to_owned();
+
+        // Make additional headers available
+        cc.push_str(format!(" -I{}", canonicalize(&additional_headers).unwrap().to_str().unwrap()).as_str());
 
         if cfg!(feature = "sancov") {
             cc.push_str(" -fsanitize-coverage=trace-pc-guard");

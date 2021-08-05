@@ -15,4 +15,5 @@ sancov = []
 members = ['testcrate']
 
 [dependencies]
+security-claims = { path = "../security-claims" }
 autotools = "0.2"
