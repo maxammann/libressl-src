@@ -168,6 +168,43 @@ tls13_hkdf_expand_label_with_length(struct tls13_ctx *ctx, struct tls13_secret *
     const EVP_MD *digest, const struct tls13_secret *secret,
     const uint8_t *label, size_t label_len, const struct tls13_secret *context)
 {
+    size_t labellen = label_len;
+    if (context != NULL) {
+        uint8_t *data = context->data;
+        size_t datalen = context->len;
+        static const unsigned char client_early_traffic[] = "c e traffic";
+        static const unsigned char client_handshake_traffic[] = "c hs traffic";
+        static const unsigned char client_application_traffic[] = "c ap traffic";
+        static const unsigned char server_handshake_traffic[] = "s hs traffic";
+        static const unsigned char server_application_traffic[] = "s ap traffic";
+        static const unsigned char exporter_master_secret[] = "exp master";
+        static const unsigned char resumption_master_secret[] = "res master";
+        static const unsigned char early_exporter_master_secret[] = "e exp master";
+        static const unsigned char ext_binder[] = "ext binder";
+        static const unsigned char res_binder[] = "res binder";
+        Claim claim = {-1};
+        if (memcmp(label, ext_binder, labellen) == 0 ||
+            memcmp(label, res_binder, labellen) == 0 ||
+            memcmp(label, client_early_traffic, labellen) == 0 ||
+            memcmp(label, early_exporter_master_secret, labellen) == 0) {
+            claim.typ = CLAIM_TRANSCRIPT_CH_SH;
+        } else if (memcmp(label, client_handshake_traffic, labellen) == 0 ||
+                   memcmp(label, server_handshake_traffic, labellen) == 0) {
+            claim.typ = CLAIM_TRANSCRIPT_CH_SH;
+        } else if (memcmp(label, client_application_traffic, labellen) == 0 ||
+                   memcmp(label, server_application_traffic, labellen) == 0 ||
+                   memcmp(label, exporter_master_secret, labellen) == 0) {
+            claim.typ = CLAIM_TRANSCRIPT_CH_SERVER_FIN;
+        } else if (memcmp(label, resumption_master_secret, labellen) == 0) {
+            claim.typ = CLAIM_TRANSCRIPT_CH_CLIENT_FIN;
+        } else {
+            claim.typ = CLAIM_TRANSCRIPT_UNKNOWN;
+        }
+        memcpy(claim.transcript.data, data, datalen);
+        claim.transcript.length = datalen;
+        ctx->ssl->claim(claim, ctx->ssl->claim_ctx);
+    }
+
 	const char tls13_plabel[] = "tls13 ";
 	uint8_t *hkdf_label;
 	size_t hkdf_label_len;
