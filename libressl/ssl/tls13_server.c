@@ -383,22 +383,22 @@ tls13_server_engage_record_protection(struct tls13_ctx *ctx)
 	context.len = hash_len;
 
 	/* Early secrets. */
-	if (!tls13_derive_early_secrets(secrets, secrets->zeros.data,
+	if (!tls13_derive_early_secrets(ctx, secrets, secrets->zeros.data,
 	    secrets->zeros.len, &context))
 		goto err;
 
 	/* Handshake secrets. */
-	if (!tls13_derive_handshake_secrets(ctx->hs->tls13.secrets, shared_key,
+	if (!tls13_derive_handshake_secrets(ctx, ctx->hs->tls13.secrets, shared_key,
 	    shared_key_len, &context))
 		goto err;
 
 	tls13_record_layer_set_aead(ctx->rl, ctx->aead);
 	tls13_record_layer_set_hash(ctx->rl, ctx->hash);
 
-	if (!tls13_record_layer_set_read_traffic_key(ctx->rl,
+	if (!tls13_record_layer_set_read_traffic_key(ctx, ctx->rl,
 	    &secrets->client_handshake_traffic))
 		goto err;
-	if (!tls13_record_layer_set_write_traffic_key(ctx->rl,
+	if (!tls13_record_layer_set_write_traffic_key(ctx, ctx->rl,
 	    &secrets->server_handshake_traffic))
 		goto err;
 
@@ -788,7 +788,7 @@ tls13_server_finished_send(struct tls13_ctx *ctx, CBB *cbb)
 	if (!tls13_secret_init(&finished_key, EVP_MD_size(ctx->hash)))
 		goto err;
 
-	if (!tls13_hkdf_expand_label(&finished_key, ctx->hash,
+	if (!tls13_hkdf_expand_label(ctx, &finished_key, ctx->hash,
 	    &secrets->server_handshake_traffic, "finished",
 	    &context))
 		goto err;
@@ -839,14 +839,14 @@ tls13_server_finished_sent(struct tls13_ctx *ctx)
 	context.data = ctx->hs->tls13.transcript_hash;
 	context.len = ctx->hs->tls13.transcript_hash_len;
 
-	if (!tls13_derive_application_secrets(secrets, &context))
+	if (!tls13_derive_application_secrets(ctx, secrets, &context))
 		return 0;
 
 	/*
 	 * Any records following the server finished message must be encrypted
 	 * using the server application traffic keys.
 	 */
-	return tls13_record_layer_set_write_traffic_key(ctx->rl,
+	return tls13_record_layer_set_write_traffic_key(ctx, ctx->rl,
 	    &secrets->server_application_traffic);
 }
 
@@ -1057,7 +1057,7 @@ tls13_client_finished_recv(struct tls13_ctx *ctx, CBS *cbs)
 	finished_key.data = key;
 	finished_key.len = EVP_MD_size(ctx->hash);
 
-	if (!tls13_hkdf_expand_label(&finished_key, ctx->hash,
+	if (!tls13_hkdf_expand_label(ctx, &finished_key, ctx->hash,
 	    &secrets->client_handshake_traffic, "finished",
 	    &context))
 		goto err;
@@ -1095,7 +1095,7 @@ tls13_client_finished_recv(struct tls13_ctx *ctx, CBS *cbs)
 	 * Any records following the client finished message must be encrypted
 	 * using the client application traffic keys.
 	 */
-	if (!tls13_record_layer_set_read_traffic_key(ctx->rl,
+	if (!tls13_record_layer_set_read_traffic_key(ctx, ctx->rl,
 	    &secrets->client_application_traffic))
 		goto err;
 

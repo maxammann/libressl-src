@@ -464,7 +464,7 @@ tls13_record_layer_phh(struct tls13_record_layer *rl, CBS *cbs)
 }
 
 static int
-tls13_record_layer_set_traffic_key(const EVP_AEAD *aead, const EVP_MD *hash,
+tls13_record_layer_set_traffic_key(struct tls13_ctx *ctx, const EVP_AEAD *aead, const EVP_MD *hash,
     struct tls13_record_protection *rp, struct tls13_secret *traffic_key)
 {
 	struct tls13_secret context = { .data = "", .len = 0 };
@@ -480,9 +480,9 @@ tls13_record_layer_set_traffic_key(const EVP_AEAD *aead, const EVP_MD *hash,
 	if (!tls13_secret_init(&key, EVP_AEAD_key_length(aead)))
 		goto err;
 
-	if (!tls13_hkdf_expand_label(&rp->iv, hash, traffic_key, "iv", &context))
+	if (!tls13_hkdf_expand_label(ctx, &rp->iv, hash, traffic_key, "iv", &context))
 		goto err;
-	if (!tls13_hkdf_expand_label(&key, hash, traffic_key, "key", &context))
+	if (!tls13_hkdf_expand_label(ctx, &key, hash, traffic_key, "key", &context))
 		goto err;
 
 	if (!EVP_AEAD_CTX_init(&rp->aead_ctx, aead, key.data, key.len,
@@ -498,18 +498,18 @@ tls13_record_layer_set_traffic_key(const EVP_AEAD *aead, const EVP_MD *hash,
 }
 
 int
-tls13_record_layer_set_read_traffic_key(struct tls13_record_layer *rl,
+tls13_record_layer_set_read_traffic_key(struct tls13_ctx *ctx, struct tls13_record_layer *rl,
     struct tls13_secret *read_key)
 {
-	return tls13_record_layer_set_traffic_key(rl->aead, rl->hash,
+	return tls13_record_layer_set_traffic_key(ctx, rl->aead, rl->hash,
 	    rl->read, read_key);
 }
 
 int
-tls13_record_layer_set_write_traffic_key(struct tls13_record_layer *rl,
+tls13_record_layer_set_write_traffic_key(struct tls13_ctx *ctx, struct tls13_record_layer *rl,
     struct tls13_secret *write_key)
 {
-	return tls13_record_layer_set_traffic_key(rl->aead, rl->hash,
+	return tls13_record_layer_set_traffic_key(ctx, rl->aead, rl->hash,
 	    rl->write, write_key);
 }
 

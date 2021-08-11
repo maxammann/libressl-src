@@ -155,16 +155,16 @@ tls13_secrets_destroy(struct tls13_secrets *secrets)
 }
 
 int
-tls13_hkdf_expand_label(struct tls13_secret *out, const EVP_MD *digest,
+tls13_hkdf_expand_label(struct tls13_ctx *ctx, struct tls13_secret *out, const EVP_MD *digest,
     const struct tls13_secret *secret, const char *label,
     const struct tls13_secret *context)
 {
-	return tls13_hkdf_expand_label_with_length(out, digest, secret, label,
+	return tls13_hkdf_expand_label_with_length(ctx, out, digest, secret, label,
 	    strlen(label), context);
 }
 
 int
-tls13_hkdf_expand_label_with_length(struct tls13_secret *out,
+tls13_hkdf_expand_label_with_length(struct tls13_ctx *ctx, struct tls13_secret *out,
     const EVP_MD *digest, const struct tls13_secret *secret,
     const uint8_t *label, size_t label_len, const struct tls13_secret *context)
 {
@@ -202,24 +202,25 @@ tls13_hkdf_expand_label_with_length(struct tls13_secret *out,
 }
 
 int
-tls13_derive_secret(struct tls13_secret *out, const EVP_MD *digest,
+tls13_derive_secret(struct tls13_ctx *ctx, struct tls13_secret *out, const EVP_MD *digest,
     const struct tls13_secret *secret, const char *label,
     const struct tls13_secret *context)
 {
-	return tls13_hkdf_expand_label(out, digest, secret, label, context);
+
+	return tls13_hkdf_expand_label(ctx, out, digest, secret, label, context);
 }
 
 int
-tls13_derive_secret_with_label_length(struct tls13_secret *out,
+tls13_derive_secret_with_label_length(struct tls13_ctx *ctx, struct tls13_secret *out,
     const EVP_MD *digest, const struct tls13_secret *secret, const uint8_t *label,
     size_t label_len, const struct tls13_secret *context)
 {
-	return tls13_hkdf_expand_label_with_length(out, digest, secret, label,
+	return tls13_hkdf_expand_label_with_length(ctx, out, digest, secret, label,
 	    label_len, context);
 }
 
 int
-tls13_derive_early_secrets(struct tls13_secrets *secrets,
+tls13_derive_early_secrets(struct tls13_ctx *ctx, struct tls13_secrets *secrets,
     uint8_t *psk, size_t psk_len, const struct tls13_secret *context)
 {
 	if (!secrets->init_done || secrets->early_done)
@@ -233,20 +234,20 @@ tls13_derive_early_secrets(struct tls13_secrets *secrets,
 	if (secrets->extracted_early.len != secrets->zeros.len)
 		return 0;
 
-	if (!tls13_derive_secret(&secrets->binder_key, secrets->digest,
+	if (!tls13_derive_secret(ctx, &secrets->binder_key, secrets->digest,
 	    &secrets->extracted_early,
 	    secrets->resumption ? "res binder" : "ext binder",
 	    &secrets->empty_hash))
 		return 0;
-	if (!tls13_derive_secret(&secrets->client_early_traffic,
+	if (!tls13_derive_secret(ctx, &secrets->client_early_traffic,
 	    secrets->digest, &secrets->extracted_early, "c e traffic",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->early_exporter_master,
+	if (!tls13_derive_secret(ctx, &secrets->early_exporter_master,
 	    secrets->digest, &secrets->extracted_early, "e exp master",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->derived_early,
+	if (!tls13_derive_secret(ctx, &secrets->derived_early,
 	    secrets->digest, &secrets->extracted_early, "derived",
 	    &secrets->empty_hash))
 		return 0;
@@ -260,7 +261,7 @@ tls13_derive_early_secrets(struct tls13_secrets *secrets,
 }
 
 int
-tls13_derive_handshake_secrets(struct tls13_secrets *secrets,
+tls13_derive_handshake_secrets(struct tls13_ctx *ctx, struct tls13_secrets *secrets,
     const uint8_t *ecdhe, size_t ecdhe_len,
     const struct tls13_secret *context)
 {
@@ -282,15 +283,15 @@ tls13_derive_handshake_secrets(struct tls13_secrets *secrets,
 		explicit_bzero(secrets->derived_early.data,
 		    secrets->derived_early.len);
 
-	if (!tls13_derive_secret(&secrets->client_handshake_traffic,
+	if (!tls13_derive_secret(ctx, &secrets->client_handshake_traffic,
 	    secrets->digest, &secrets->extracted_handshake, "c hs traffic",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->server_handshake_traffic,
+	if (!tls13_derive_secret(ctx, &secrets->server_handshake_traffic,
 	    secrets->digest, &secrets->extracted_handshake, "s hs traffic",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->derived_handshake,
+	if (!tls13_derive_secret(ctx, &secrets->derived_handshake,
 	    secrets->digest, &secrets->extracted_handshake, "derived",
 	    &secrets->empty_hash))
 		return 0;
@@ -306,7 +307,7 @@ tls13_derive_handshake_secrets(struct tls13_secrets *secrets,
 }
 
 int
-tls13_derive_application_secrets(struct tls13_secrets *secrets,
+tls13_derive_application_secrets(struct tls13_ctx *ctx, struct tls13_secrets *secrets,
     const struct tls13_secret *context)
 {
 	if (!secrets->init_done || !secrets->early_done ||
@@ -327,19 +328,19 @@ tls13_derive_application_secrets(struct tls13_secrets *secrets,
 		explicit_bzero(secrets->derived_handshake.data,
 		    secrets->derived_handshake.len);
 
-	if (!tls13_derive_secret(&secrets->client_application_traffic,
+	if (!tls13_derive_secret(ctx, &secrets->client_application_traffic,
 	    secrets->digest, &secrets->extracted_master, "c ap traffic",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->server_application_traffic,
+	if (!tls13_derive_secret(ctx, &secrets->server_application_traffic,
 	    secrets->digest, &secrets->extracted_master, "s ap traffic",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->exporter_master,
+	if (!tls13_derive_secret(ctx, &secrets->exporter_master,
 	    secrets->digest, &secrets->extracted_master, "exp master",
 	    context))
 		return 0;
-	if (!tls13_derive_secret(&secrets->resumption_master,
+	if (!tls13_derive_secret(ctx, &secrets->resumption_master,
 	    secrets->digest, &secrets->extracted_master, "res master",
 	    context))
 		return 0;
@@ -355,7 +356,7 @@ tls13_derive_application_secrets(struct tls13_secrets *secrets,
 }
 
 int
-tls13_update_client_traffic_secret(struct tls13_secrets *secrets)
+tls13_update_client_traffic_secret(struct tls13_ctx *ctx, struct tls13_secrets *secrets)
 {
 	struct tls13_secret context = { .data = "", .len = 0 };
 
@@ -363,13 +364,13 @@ tls13_update_client_traffic_secret(struct tls13_secrets *secrets)
 	    !secrets->handshake_done || !secrets->schedule_done)
 		return 0;
 
-	return tls13_hkdf_expand_label(&secrets->client_application_traffic,
+	return tls13_hkdf_expand_label(ctx, &secrets->client_application_traffic,
 	    secrets->digest, &secrets->client_application_traffic,
 	    "traffic upd", &context);
 }
 
 int
-tls13_update_server_traffic_secret(struct tls13_secrets *secrets)
+tls13_update_server_traffic_secret(struct tls13_ctx *ctx, struct tls13_secrets *secrets)
 {
 	struct tls13_secret context = { .data = "", .len = 0 };
 
@@ -377,7 +378,7 @@ tls13_update_server_traffic_secret(struct tls13_secrets *secrets)
 	    !secrets->handshake_done || !secrets->schedule_done)
 		return 0;
 
-	return tls13_hkdf_expand_label(&secrets->server_application_traffic,
+	return tls13_hkdf_expand_label(ctx, &secrets->server_application_traffic,
 	    secrets->digest, &secrets->server_application_traffic,
 	    "traffic upd", &context);
 }

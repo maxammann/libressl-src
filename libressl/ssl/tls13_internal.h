@@ -147,28 +147,7 @@ struct tls13_secrets *tls13_secrets_create(const EVP_MD *digest,
     int resumption);
 void tls13_secrets_destroy(struct tls13_secrets *secrets);
 
-int tls13_hkdf_expand_label(struct tls13_secret *out, const EVP_MD *digest,
-    const struct tls13_secret *secret, const char *label,
-    const struct tls13_secret *context);
-int tls13_hkdf_expand_label_with_length(struct tls13_secret *out,
-    const EVP_MD *digest, const struct tls13_secret *secret,
-    const uint8_t *label, size_t label_len, const struct tls13_secret *context);
 
-int tls13_derive_secret(struct tls13_secret *out, const EVP_MD *digest,
-    const struct tls13_secret *secret, const char *label,   
-    const struct tls13_secret *context);
-int tls13_derive_secret_with_label_length(struct tls13_secret *out,
-    const EVP_MD *digest, const struct tls13_secret *secret,
-    const uint8_t *label, size_t label_len, const struct tls13_secret *context);
-
-int tls13_derive_early_secrets(struct tls13_secrets *secrets, uint8_t *psk,
-    size_t psk_len, const struct tls13_secret *context);
-int tls13_derive_handshake_secrets(struct tls13_secrets *secrets,
-    const uint8_t *ecdhe, size_t ecdhe_len, const struct tls13_secret *context);
-int tls13_derive_application_secrets(struct tls13_secrets *secrets,
-    const struct tls13_secret *context);
-int tls13_update_client_traffic_secret(struct tls13_secrets *secrets);
-int tls13_update_server_traffic_secret(struct tls13_secrets *secrets);
 
 /*
  * Key shares.
@@ -216,10 +195,7 @@ void tls13_record_layer_set_legacy_version(struct tls13_record_layer *rl,
     uint16_t version);
 void tls13_record_layer_set_retry_after_phh(struct tls13_record_layer *rl, int retry);
 void tls13_record_layer_handshake_completed(struct tls13_record_layer *rl);
-int tls13_record_layer_set_read_traffic_key(struct tls13_record_layer *rl,
-    struct tls13_secret *read_key);
-int tls13_record_layer_set_write_traffic_key(struct tls13_record_layer *rl,
-    struct tls13_secret *write_key);
+
 ssize_t tls13_record_layer_send_pending(struct tls13_record_layer *rl);
 ssize_t tls13_record_layer_phh(struct tls13_record_layer *rl, CBS *cbs);
 
@@ -314,6 +290,32 @@ void tls13_ctx_free(struct tls13_ctx *ctx);
 const EVP_AEAD *tls13_cipher_aead(const SSL_CIPHER *cipher);
 const EVP_MD *tls13_cipher_hash(const SSL_CIPHER *cipher);
 
+int tls13_record_layer_set_read_traffic_key(struct tls13_ctx *ctx, struct tls13_record_layer *rl,
+                                            struct tls13_secret *read_key);
+int tls13_record_layer_set_write_traffic_key(struct tls13_ctx *ctx, struct tls13_record_layer *rl,
+                                             struct tls13_secret *write_key);
+int tls13_hkdf_expand_label(struct tls13_ctx *ctx, struct tls13_secret *out, const EVP_MD *digest,
+                            const struct tls13_secret *secret, const char *label,
+                            const struct tls13_secret *context);
+int tls13_hkdf_expand_label_with_length(struct tls13_ctx *ctx, struct tls13_secret *out,
+                                        const EVP_MD *digest, const struct tls13_secret *secret,
+                                        const uint8_t *label, size_t label_len, const struct tls13_secret *context);
+
+int tls13_derive_secret(struct tls13_ctx *ctx, struct tls13_secret *out, const EVP_MD *digest,
+                        const struct tls13_secret *secret, const char *label,
+                        const struct tls13_secret *context);
+int tls13_derive_secret_with_label_length(struct tls13_ctx *ctx, struct tls13_secret *out,
+                                          const EVP_MD *digest, const struct tls13_secret *secret,
+                                          const uint8_t *label, size_t label_len, const struct tls13_secret *context);
+
+int tls13_derive_early_secrets(struct tls13_ctx *ctx, struct tls13_secrets *secrets, uint8_t *psk,
+                               size_t psk_len, const struct tls13_secret *context);
+int tls13_derive_handshake_secrets(struct tls13_ctx *ctx, struct tls13_secrets *secrets,
+                                   const uint8_t *ecdhe, size_t ecdhe_len, const struct tls13_secret *context);
+int tls13_derive_application_secrets(struct tls13_ctx *ctx, struct tls13_secrets *secrets,
+                                     const struct tls13_secret *context);
+int tls13_update_client_traffic_secret(struct tls13_ctx *ctx, struct tls13_secrets *secrets);
+int tls13_update_server_traffic_secret(struct tls13_ctx *ctx, struct tls13_secrets *secrets);
 /*
  * Legacy interfaces.
  */

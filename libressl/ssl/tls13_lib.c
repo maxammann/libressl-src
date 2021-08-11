@@ -227,11 +227,11 @@ tls13_phh_update_local_traffic_secret(struct tls13_ctx *ctx)
 	struct tls13_secrets *secrets = ctx->hs->tls13.secrets;
 
 	if (ctx->mode == TLS13_HS_CLIENT)
-		return (tls13_update_client_traffic_secret(secrets) &&
-		    tls13_record_layer_set_write_traffic_key(ctx->rl,
+		return (tls13_update_client_traffic_secret(ctx, secrets) &&
+		    tls13_record_layer_set_write_traffic_key(ctx, ctx->rl,
 			&secrets->client_application_traffic));
-	return (tls13_update_server_traffic_secret(secrets) &&
-	    tls13_record_layer_set_read_traffic_key(ctx->rl,
+	return (tls13_update_server_traffic_secret(ctx, secrets) &&
+	    tls13_record_layer_set_read_traffic_key(ctx, ctx->rl,
 	    &secrets->server_application_traffic));
 }
 
@@ -241,11 +241,11 @@ tls13_phh_update_peer_traffic_secret(struct tls13_ctx *ctx)
 	struct tls13_secrets *secrets = ctx->hs->tls13.secrets;
 
 	if (ctx->mode == TLS13_HS_CLIENT)
-		return (tls13_update_server_traffic_secret(secrets) &&
-		    tls13_record_layer_set_read_traffic_key(ctx->rl,
+		return (tls13_update_server_traffic_secret(ctx, secrets) &&
+		    tls13_record_layer_set_read_traffic_key(ctx, ctx->rl,
 		    &secrets->server_application_traffic));
-	return (tls13_update_client_traffic_secret(secrets) &&
-	    tls13_record_layer_set_write_traffic_key(ctx->rl,
+	return (tls13_update_client_traffic_secret(ctx, secrets) &&
+	    tls13_record_layer_set_write_traffic_key(ctx, ctx->rl,
 	    &secrets->client_application_traffic));
 }
 
@@ -630,12 +630,12 @@ tls13_exporter(struct tls13_ctx *ctx, const uint8_t *label, size_t label_len,
 	if (md_len != md_out_len)
 		goto err;
 
-	if (!tls13_derive_secret_with_label_length(&export_secret,
+	if (!tls13_derive_secret_with_label_length(ctx, &export_secret,
 	    secrets->digest, &secrets->exporter_master, label, label_len,
 	    &secrets->empty_hash))
 		goto err;
 
-	if (!tls13_hkdf_expand_label(&export_out, secrets->digest,
+	if (!tls13_hkdf_expand_label(ctx, &export_out, secrets->digest,
 	    &export_secret, "exporter", &context))
 		goto err;
 
