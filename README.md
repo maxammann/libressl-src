@@ -17,7 +17,7 @@ as a direct or indirect dependency:
 
 ```
 [patch.crates-io]
-libressl-src = { git = "https://github.com/maxammann/libressl-src" }
+libressl-src = { git = "https://github.com/tlspuffin/libressl-src" }
 ```
 
 This will substitute this repository into your build process where cargo would
