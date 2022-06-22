@@ -3093,7 +3093,14 @@ void* deregister_claimer(const void *tls_like){
 }
 
 void fill_claim(SSL *s, Claim* claim) {
-    claim->version.data = s->version;
+    switch (s->version) {
+        case TLS1_2_VERSION:
+            claim->version.data = CLAIM_TLS_VERSION_V1_2;
+        case TLS1_3_VERSION:
+            claim->version.data = CLAIM_TLS_VERSION_V1_3;
+        default:
+            claim->version.data = CLAIM_TLS_VERSION_UNDEFINED;
+    }
 
     claim->server = s->server;
 
