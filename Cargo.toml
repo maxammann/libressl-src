@@ -10,6 +10,7 @@ exclude = ['libressl/*']
 
 [features]
 sancov = []
+asan = [] # TODO
 
 [workspace]
 members = ['testcrate']
